@@ -1,41 +1,65 @@
+import { useState } from "react";
 import { Link, NavLink } from "react-router";
+import { Menu, ShoppingCart, X } from "lucide-react";
+import Logo from ".Logo.jsx";
 import { useCart } from "../context/CartContext.js";
 
 export default function Navbar() {
-    const { cart } = useCart();
+  const { cart } = useCart();
+  const [open, setOpen] = useState(false);
 
-    return (
-        <header className="site-header">
-            <div className="container navbar">
-                <Link
-                    to="/"
-                    className="logo"
-                    aria-label="RideGo home"
-                >
-                    Ride<span>Go</span>
-                </Link>
+  return (
+    <header className="site-header">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
 
-                <nav
-                    className="nav-links"
-                    aria-label="Main navigation"
-                >
-                    <NavLink to="/" end>
-                        Home
-                    </NavLink>
+      <div className="container navbar">
+        <Logo />
 
-                    <NavLink to="/vehicles">
-                        Vehicles
-                    </NavLink>
+        <nav
+          className={`nav-links ${open ? "is-open" : ""}`}
+          id="main-navigation"
+          aria-label="Main navigation"
+          onClick={() => setOpen(false)}
+        >
+          <NavLink to="/" end>
+            Home
+          </NavLink>
+          <NavLink to="/vehicles">Vehicles</NavLink>
+          <NavLink to="/about">About us</NavLink>
+          <NavLink to="/contact">Contact Us</NavLink>
+        </nav>
 
-                    <NavLink to="/cart">
-                        Cart ({cart.length})
-                    </NavLink>
-                </nav>
+        <div className="nav-actions">
+          <NavLink
+            to="/cart"
+            className="cart-link"
+            aria-label={`Cart, ${cart.length} ${
+              cart.length === 1 ? "vehicle" : "vehicles"
+            }`}
+          >
+            <ShoppingCart size={17} aria-hidden="true" />
+            <span>Cart</span>
+            <span className="cart-count">{cart.length}</span>
+          </NavLink>
 
-                <Link to="/vehicles" className="button">
-                    Get Started
-                </Link>
-            </div>
-        </header>
-    );
+          <Link to="/vehicles" className="button nav-cta">
+            Get Started
+          </Link>
+
+          <button
+            className="menu-toggle"
+            type="button"
+            aria-label={open ? "Close navigation" : "Open navigation"}
+            aria-controls="main-navigation"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <X /> : <Menu />}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
 }
