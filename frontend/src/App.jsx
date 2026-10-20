@@ -14,6 +14,8 @@ import Home from "./pages/Home.jsx";
 import Vehicles from "./pages/Vehicles.jsx";
 import VehicleDetails from "./pages/VehicleDetails.jsx";
 import Cart from "./pages/Cart.jsx";
+import Footer from "./components/footer.jsx";
+import Information from "./pages/Information.jsx";
 
 function ScrollToTop() {
     const { pathname } = useLocation();
@@ -60,16 +62,18 @@ export default function App() {
                             </main>
                         }
                     />
+                    <Route
+                        path="/about"
+                        element={<Information page="about" />}
+                    />
+
+                    <Route
+                        path="/contact"
+                        element={<Information page="contact" />}
+                    />
                 </Routes>
 
-                <footer className="site-footer">
-                    <div className="container">
-                        <strong>RideGo</strong>
-                        <p>
-                            More than a rental. A brighter way to explore.
-                        </p>
-                    </div>
-                </footer>
+                <Footer />
             </CartProvider>
         </BrowserRouter>
     );

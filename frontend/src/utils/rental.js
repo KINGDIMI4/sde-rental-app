@@ -1,18 +1,10 @@
-export const INSURANCE_PER_DAY = 8;
+export const INSURANCE_PER_DAY = 10;
 export const DEPOSIT_PER_VEHICLE = 200;
 
 const DAY = 86400000;
 
-export function todayISO() {
-    const date = new Date();
-
-    return [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, "0"),
-        String(date.getDate()).padStart(2, "0"),
-    ].join("-");
-}
-
+// UTC date arithmetic prevents daylight-saving changes
+// from affecting the number of rental days.
 function dateValue(value) {
     if (
         typeof value !== "string" ||
@@ -21,29 +13,44 @@ function dateValue(value) {
         return NaN;
     }
 
-    const timestamp = Date.parse(`${value}T00:00:00Z`);
+    const date = new Date(`${value}T00:00:00.000Z`);
 
-    if (!Number.isFinite(timestamp)) {
+    if (
+        !Number.isFinite(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== value
+    ) {
         return NaN;
     }
 
-    return new Date(timestamp).toISOString().slice(0, 10) === value
-        ? timestamp
-        : NaN;
+    return date.getTime();
 }
 
-export function nextDay(value) {
-    const timestamp = dateValue(value);
+export function todayISO() {
+    const now = new Date();
 
-    return Number.isFinite(timestamp)
-        ? new Date(timestamp + DAY).toISOString().slice(0, 10)
-        : "";
+    return [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+    ].join("-");
 }
 
-export function rentalDays(pickup, returnDate) {
-    const days = (dateValue(returnDate) - dateValue(pickup)) / DAY;
+export function nextDay(value, count = 1) {
+    const time = dateValue(value);
 
-    return Number.isInteger(days) && days > 0 ? days : 0;
+    if (!Number.isFinite(time)) {
+        return "";
+    }
+
+    const next = new Date(time + count * DAY);
+
+    if (!Number.isFinite(next.getTime())) {
+        return "";
+    }
+
+    const result = next.toISOString().slice(0, 10);
+
+    return /^\d{4}-\d{2}-\d{2}$/.test(result) ? result : "";
 }
 
 export function rentalError(
@@ -51,19 +58,19 @@ export function rentalError(
     returnDate,
     today = todayISO()
 ) {
-    if (
-        !Number.isFinite(dateValue(pickup)) ||
-        !Number.isFinite(dateValue(returnDate))
-    ) {
-        return "Choose valid pick-up and return dates.";
+    const start = dateValue(pickup);
+    const end = dateValue(returnDate);
+
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+        return "Choose a valid pick-up and return date.";
     }
 
     if (pickup < today) {
-        return "Pick-up cannot be in the past.";
+        return "Pick-up must be today or a future date.";
     }
 
-    if (!rentalDays(pickup, returnDate)) {
-        return "Return must be after pick-up.";
+    if (end <= start) {
+        return "Return must be at least one day after pick-up.";
     }
 
     return "";
@@ -73,9 +80,16 @@ export function rentalQuote(
     vehicle,
     pickup,
     returnDate,
-    insurance
+    insurance = false
 ) {
-    const days = rentalDays(pickup, returnDate);
+    const difference =
+        dateValue(returnDate) - dateValue(pickup);
+
+    const days =
+        Number.isFinite(difference) && difference > 0
+            ? difference / DAY
+            : 0;
+
     const hire = days * vehicle.price;
     const cover = insurance ? days * INSURANCE_PER_DAY : 0;
 
@@ -87,17 +101,18 @@ export function rentalQuote(
     };
 }
 
-export function money(value) {
+export function money(amount) {
     return new Intl.NumberFormat("en-IE", {
         style: "currency",
         currency: "EUR",
-    }).format(value);
+        maximumFractionDigits: 0,
+    }).format(amount);
 }
 
 export function displayDate(value) {
-    const timestamp = dateValue(value);
+    const time = dateValue(value);
 
-    if (!Number.isFinite(timestamp)) {
+    if (!Number.isFinite(time)) {
         return "Choose a date";
     }
 
@@ -106,60 +121,5 @@ export function displayDate(value) {
         month: "short",
         year: "numeric",
         timeZone: "UTC",
-    }).format(timestamp);
-}
-
-export function restoreCart(raw, catalog) {
-    try {
-        const parsed = JSON.parse(raw);
-
-        if (!Array.isArray(parsed)) {
-            return [];
-        }
-
-        const unique = new Map();
-
-        for (const item of parsed) {
-            if (
-                !item ||
-                !catalog.some((vehicle) => vehicle.id === item.vehicleId)
-            ) {
-                continue;
-            }
-
-            if (!rentalDays(item.pickup, item.returnDate)) {
-                continue;
-            }
-
-            unique.set(item.vehicleId, {
-                vehicleId: item.vehicleId,
-                pickup: item.pickup,
-                returnDate: item.returnDate,
-                insurance: item.insurance === true,
-            });
-        }
-
-        return [...unique.values()];
-    } catch {
-        return [];
-    }
-}
-
-export function upsertRental(cart, selection) {
-    const item = {
-        vehicleId: selection.vehicleId,
-        pickup: selection.pickup,
-        returnDate: selection.returnDate,
-        insurance: selection.insurance === true,
-    };
-
-    const found = cart.some(
-        (entry) => entry.vehicleId === item.vehicleId
-    );
-
-    return found
-        ? cart.map((entry) =>
-            entry.vehicleId === item.vehicleId ? item : entry
-        )
-        : [...cart, item];
+    }).format(time);
 }

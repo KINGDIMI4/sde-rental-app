@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router";
 import { Menu, ShoppingCart, X } from "lucide-react";
-import Logo from ".Logo.jsx";
+import Logo from "./logo.jsx";
 import { useCart } from "../context/CartContext.js";
 
 export default function Navbar() {

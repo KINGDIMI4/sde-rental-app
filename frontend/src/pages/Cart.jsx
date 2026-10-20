@@ -1,4 +1,12 @@
 import { Link } from "react-router";
+import {
+    ShoppingCart,
+    ArrowLeft,
+    ArrowRight,
+    Trash2,
+    Pencil,
+    ShieldCheck,
+} from "lucide-react";
 import { vehicles } from "../Data.js";
 import { useCart } from "../context/CartContext.js";
 import {
@@ -10,64 +18,78 @@ import {
 } from "../utils/rental.js";
 
 export default function Cart() {
-    const { cart, removeFromCart } = useCart();
+    const { cart, removeFromCart, storageError } = useCart();
 
     const items = cart.flatMap((item) => {
         const vehicle = vehicles.find(
             (entry) => entry.id === item.vehicleId
         );
 
-        if (!vehicle) {
-            return [];
-        }
-
-        return [
-            {
-                ...item,
-                vehicle,
-                quote: rentalQuote(
+        return vehicle
+            ? [
+                {
+                    ...item,
                     vehicle,
-                    item.pickup,
-                    item.returnDate,
-                    item.insurance
-                ),
-            },
-        ];
+                    quote: rentalQuote(
+                        vehicle,
+                        item.pickup,
+                        item.returnDate,
+                        item.insurance
+                    ),
+                },
+            ]
+            : [];
     });
 
     const hire = items.reduce(
         (sum, item) => sum + item.quote.hire,
         0
     );
-
     const cover = items.reduce(
         (sum, item) => sum + item.quote.cover,
         0
     );
+    const hasExpiredDates = items.some((item) =>
+        rentalError(item.pickup, item.returnDate)
+    );
 
     return (
-        <main>
-            <section className="page-banner">
+        <main id="main-content">
+            <section className="page-banner detail-banner">
                 <div className="container">
-                    <h1>Your rental cart</h1>
+                    <nav className="breadcrumb" aria-label="Breadcrumb">
+                        <Link to="/">Home</Link>
+                        <span>/</span>
+                        <span aria-current="page">Your cart</span>
+                    </nav>
+
+                    <h1>Your rental cart.</h1>
                     <p>
-                        Review your vehicles, dates, and rental totals.
+                        Your next journey is taking shape. Review the details
+                        below.
                     </p>
                 </div>
             </section>
 
             <section className="container section">
-                {items.length === 0 ? (
-                    <div className="empty-state">
-                        <h2>Your cart is empty</h2>
+                {storageError && (
+                    <p role="status" className="form-error storage-notice">
+                        Your browser could not save these selections. They will
+                        stay in your cart until you refresh this page.
+                    </p>
+                )}
 
+                {!items.length ? (
+                    <div className="empty-state cart-empty">
+                        <ShoppingCart size={40} />
+                        <h2>Your next adventure starts here.</h2>
                         <p>
-                            Select a vehicle and choose your rental dates
-                            to get started.
+                            Your cart is empty. Find your ride and choose your
+                            rental dates.
                         </p>
 
                         <Link to="/vehicles" className="button">
-                            Browse vehicles
+                            Browse vehicles <ArrowRight size={17} />
                         </Link>
                     </div>
                 ) : (
@@ -85,14 +107,18 @@ export default function Cart() {
                                         <img
                                             src={item.vehicle.image}
                                             alt={item.vehicle.name}
+                                            width="1536"
+                                            height="1024"
                                         />
                                     </Link>
 
                                     <div className="cart-item-info">
+                    <span className="vehicle-category">
+                      {item.vehicle.category}
+                    </span>
+
                                         <h2>
-                                            <Link
-                                                to={`/vehicles/${item.vehicleId}`}
-                                            >
+                                            <Link to={`/vehicles/${item.vehicleId}`}>
                                                 {item.vehicle.name}
                                             </Link>
                                         </h2>
@@ -104,26 +130,22 @@ export default function Cart() {
 
                                         <p>
                                             {item.quote.days}{" "}
-                                            {item.quote.days === 1 ? "day" : "days"}{" "}
-                                            · {money(item.vehicle.price)} / day
+                                            {item.quote.days === 1 ? "day" : "days"} ·{" "}
+                                            {money(item.vehicle.price)} / day
                                         </p>
+
+                                        <p>{item.location}</p>
 
                                         <p>
                                             Insurance:{" "}
                                             {item.insurance
-                                                ? `${money(item.quote.cover)} included in the total`
+                                                ? `${money(item.quote.cover)} included in total`
                                                 : "Not selected"}
                                         </p>
 
-                                        {rentalError(
-                                            item.pickup,
-                                            item.returnDate
-                                        ) && (
-                                            <p
-                                                className="form-error"
-                                                role="alert"
-                                            >
-                                                Please update this rental&apos;s dates.
+                                        {rentalError(item.pickup, item.returnDate) && (
+                                            <p className="form-error" role="alert">
+                                                Please update this rental’s dates.
                                             </p>
                                         )}
 
@@ -132,6 +154,7 @@ export default function Cart() {
                                                 to={`/vehicles/${item.vehicleId}`}
                                                 className="text-link"
                                             >
+                                                <Pencil size={14} />
                                                 Edit rental
                                             </Link>
 
@@ -143,6 +166,7 @@ export default function Cart() {
                                                     removeFromCart(item.vehicleId)
                                                 }
                                             >
+                                                <Trash2 size={14} />
                                                 Remove
                                             </button>
                                         </div>
@@ -155,12 +179,16 @@ export default function Cart() {
                             ))}
 
                             <Link to="/vehicles" className="text-link">
-                                ← Continue browsing
+                                <ArrowLeft size={17} />
+                                Continue browsing
                             </Link>
                         </div>
 
                         <aside className="rental-panel cart-summary">
-                            <h2>Rental summary</h2>
+                            <div className="rental-panel-heading">
+                                <h2>Rental summary</h2>
+                                <ShieldCheck aria-hidden="true" />
+                            </div>
 
                             <div className="price-row">
                                 <span>Vehicles</span>
@@ -182,19 +210,24 @@ export default function Cart() {
                                 <strong>{money(hire + cover)}</strong>
                             </div>
 
-                            <div className="price-row">
+                            <div className="price-row deposit-row">
                                 <span>Refundable deposits, separate</span>
-
                                 <strong>
-                                    {money(
-                                        items.length * DEPOSIT_PER_VEHICLE
-                                    )}
+                                    {money(items.length * DEPOSIT_PER_VEHICLE)}
                                 </strong>
                             </div>
 
+                            {hasExpiredDates && (
+                                <p className="form-error" role="alert">
+                                    Some dates need updating. These totals are
+                                    estimates until you choose new dates.
+                                </p>
+                            )}
+
                             <p className="rental-note">
-                                Cart items are rental selections, not
-                                confirmed reservations.
+                                Your selections are saved in this browser. They are
+                                not confirmed reservations, and no payment is
+                                collected.
                             </p>
                         </aside>
                     </div>

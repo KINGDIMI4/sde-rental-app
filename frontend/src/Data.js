@@ -47,6 +47,17 @@ export const vehicles = [
         description:
             "A spacious SUV for family outings and journeys with extra luggage.",
     },
+
+];
+export const locations = [
+    "Debrecen City Centre",
+    "Debrecen Airport",
+];
+export const categories = [
+    "Economy",
+    "Sedan",
+    "SUV",
+    "Sports",
 ];
 
 
