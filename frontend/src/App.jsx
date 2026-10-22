@@ -16,7 +16,7 @@ import VehicleDetails from "./pages/VehicleDetails.jsx";
 import Cart from "./pages/Cart.jsx";
 import Footer from "./components/footer.jsx";
 import Information from "./pages/Information.jsx";
-import contact from "./pages/Contact.jsx";
+import Contact from "./pages/Contact.jsx";
 
 
 function ScrollToTop() {
