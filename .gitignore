@@ -6,3 +6,9 @@ dist/
 !.env.example
 .idea/
 *.log
+# Python backend
+backend/.venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+__pycache__/
