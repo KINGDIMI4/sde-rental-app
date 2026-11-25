@@ -1,0 +1,5 @@
+package com.ridego.backend.controller;
+import org.springframework.jdbc.core.JdbcTemplate;import org.springframework.web.bind.annotation.*;import org.springframework.http.HttpStatus;import org.springframework.web.server.ResponseStatusException;import java.util.*;
+@RestController @RequestMapping("/api/contact") public class ContactController {private final JdbcTemplate db;public ContactController(JdbcTemplate db){this.db=db;}
+ @PostMapping public Map<String,Object> send(@RequestBody Map<String,Object>b){String name=req(b,"fullName"),email=req(b,"email").toLowerCase().trim(),subject=req(b,"subject"),message=req(b,"message");if(!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Enter a valid email address");db.update("insert into contact_messages(full_name,email,subject,message_body,status) values(?,?,?,?,'NEW')",name,email,subject,message);return Map.of("message","Your message has been received");}
+ private String req(Map<String,Object>b,String k){Object v=b.get(k);if(v==null||v.toString().isBlank())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,k+" is required");return v.toString();}}
